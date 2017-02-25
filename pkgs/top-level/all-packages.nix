@@ -3868,6 +3868,8 @@ with pkgs;
 
   snabb = callPackage ../tools/networking/snabb { } ;
 
+  snabbwall = callPackage ../tools/networking/snabbwall { } ;
+
   sng = callPackage ../tools/graphics/sng {
     libpng = libpng12;
   };
