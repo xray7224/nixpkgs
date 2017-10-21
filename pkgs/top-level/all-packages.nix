@@ -10891,6 +10891,8 @@ with pkgs;
 
   vmime = callPackage ../development/libraries/vmime { };
 
+  vpp = callPackage ../servers/vpp { };
+
   vrpn = callPackage ../development/libraries/vrpn { };
 
   vsqlite = callPackage ../development/libraries/vsqlite { };
