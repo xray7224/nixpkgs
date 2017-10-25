@@ -10891,8 +10891,6 @@ with pkgs;
 
   vmime = callPackage ../development/libraries/vmime { };
 
-  vpp = callPackage ../servers/vpp { };
-
   vrpn = callPackage ../development/libraries/vrpn { };
 
   vsqlite = callPackage ../development/libraries/vsqlite { };
@@ -12598,6 +12596,8 @@ with pkgs;
       virtualbox = pkgs.virtualboxHardened;
     };
 
+    vpp = callPackage ../os-specific/linux/vpp { };
+
     wireguard = callPackage ../os-specific/linux/wireguard { };
 
     x86_energy_perf_policy = callPackage ../os-specific/linux/x86_energy_perf_policy { };
@@ -13040,6 +13040,8 @@ with pkgs;
   v4l_utils = qt5.callPackage ../os-specific/linux/v4l-utils { };
 
   vndr = callPackage ../development/tools/vndr { };
+
+  #vpp = callPackage ../os-specific/linux/vpp { };
 
   windows = rec {
     cygwinSetup = callPackage ../os-specific/windows/cygwin-setup { };
