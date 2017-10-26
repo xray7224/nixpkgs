@@ -21,7 +21,8 @@ stdenv.mkDerivation rec {
     leaveDotGit = true;
   };
 
-  nativeBuildInputs = [ autoconf automake libtool pkgconfig yacc curl jdk git autoreconfHook ];
+  # git needed to create version.h
+  nativeBuildInputs = [ autoconf automake libtool pkgconfig yacc openssl git autoreconfHook ];
   buildInputs = [ python27 dpdk ];
 
   sourceRoot = "vpp/src";
@@ -29,21 +30,9 @@ stdenv.mkDerivation rec {
   # Needed to build DPDk plugin with --static to avoid linking issues with Nix's DPDK
   patches = [ ./static.patch ];
 
-  hardeningDisable = [ "pic" ];
-
-  configureFlags = [ "--disable-papi" "--disable-japi" "--enable-static=dpdk_plugin" ];
-
-  dontDisableStatic = true;
+  configureFlags = [ "--disable-papi" "--disable-japi" ];
 
   NIX_CFLAGS_COMPILE = "-march=corei7 -mtune=corei7-avx";
-
-  preConfigure=''
-    export CPPFLAGS="-I${dpdk.out}/include/dpdk";
-    export LDFLAGS="-L${dpdk.out}/lib";
-  '';
-
-  #preBuild = "make bootstrap";
-  #buildFlags = [ "build-release" ];
 
   # Fix up RPATH since TMPDIR seems to end up in it for some reason
   preFixup=''
