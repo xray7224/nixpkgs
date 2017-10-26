@@ -26,10 +26,14 @@ stdenv.mkDerivation rec {
 
   sourceRoot = "vpp/src";
 
-  hardeningDisable = [ "all" ];
-  #hardeningDisable = [ "relro" ];
+  # Needed to build DPDk plugin with --static to avoid linking issues with Nix's DPDK
+  patches = [ ./static.patch ];
 
-  configureFlags = [ "--disable-papi" "--disable-japi" "--disable-dpdk-plugin" ];
+  hardeningDisable = [ "pic" ];
+
+  configureFlags = [ "--disable-papi" "--disable-japi" "--enable-static=dpdk_plugin" ];
+
+  dontDisableStatic = true;
 
   NIX_CFLAGS_COMPILE = "-march=corei7 -mtune=corei7-avx";
 
