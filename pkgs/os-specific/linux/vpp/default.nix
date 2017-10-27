@@ -15,7 +15,7 @@ stdenv.mkDerivation rec {
   src = fetchgit {
     url = "https://gerrit.fd.io/r/vpp";
     rev = "refs/tags/v${version}";
-    sha256 = "1997rsf9farzpip9qm4hzd56d9519fr22c28jdw5x8dmw3lzpyi5";
+    sha256 = "0llvn9h5yizdjwdb0f4z7sw27c8qyqw9iqkwwmmvzqrmwcar6dng";
   };
 
   preBuild = ''
