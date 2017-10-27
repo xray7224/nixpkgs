@@ -15,11 +15,18 @@ stdenv.mkDerivation rec {
   src = fetchgit {
     url = "https://gerrit.fd.io/r/vpp";
     rev = "refs/tags/v${version}";
-    sha256 = "1kjfhp5zyy6l29dzqz4frgxm672aib0x57j9cbfhi1g4h6992pw3";
-    # Next two needed for version information extraction
-    deepClone = true;
-    leaveDotGit = true;
+    sha256 = "1997rsf9farzpip9qm4hzd56d9519fr22c28jdw5x8dmw3lzpyi5";
   };
+
+  preBuild = ''
+    cat > vpp/app/version.h <<EOF
+    #define VPP_BUILD_DATE "Thu Jan 01 00:00:01 UTC 1970"
+    #define VPP_BUILD_USER "$(whoami)"
+    #define VPP_BUILD_HOST "nix"
+    #define VPP_BUILD_TOPDIR ""
+    #define VPP_BUILD_VER "${version}"
+    EOF
+  '';
 
   # git needed to create version.h
   nativeBuildInputs = [ autoconf automake libtool pkgconfig yacc openssl git autoreconfHook ];
