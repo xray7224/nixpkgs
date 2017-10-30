@@ -1,9 +1,9 @@
 { stdenv, fetchgit, git, autoconf, automake,
-  libtool, pkgconfig, python27, libffi,
+  libtool, pkgconfig, python, pythonPackages, libffi,
   # FIXME: these are needed if python/java APIs are enabled
   # jdk,
   openssl,
-  yacc, autoreconfHook,
+  yacc, autoreconfHook, ensureNewerSourcesHook,
   # use nix dpdk package (default build downloads a dpdk)
   dpdk }:
 
@@ -29,16 +29,22 @@ stdenv.mkDerivation rec {
   '';
 
   # git needed to create version.h
-  nativeBuildInputs = [ autoconf automake libtool pkgconfig yacc openssl git autoreconfHook ];
-  buildInputs = [ python27 dpdk ];
+  nativeBuildInputs = [ autoconf automake libtool pkgconfig yacc openssl git
+                        autoreconfHook pythonPackages.setuptools
+                        # Needed to build Python API (zip 1980 issue)
+                        (ensureNewerSourcesHook { year = "1980"; }) ];
+  buildInputs = [ python dpdk ];
 
   sourceRoot = "vpp/src";
 
-  # Needed to build DPDk plugin with --static to avoid linking issues with Nix's DPDK
-  patches = [ ./static.patch ];
+  # Needed to build API libraries
+  dontDisableStatic = true;
 
-  # The python and java APIs caused build problems so don't build them for now
-  configureFlags = [ "--disable-papi" "--disable-japi" ];
+  patches = [ # Needed to build DPDk plugin with --static to avoid linking issues with Nix's DPDK
+              ./static.patch ];
+
+  # The java APIs caused build problems so don't build them for now
+  configureFlags = [ "--disable-japi" ];
 
   NIX_CFLAGS_COMPILE = "-march=corei7 -mtune=corei7-avx";
 
