@@ -12598,6 +12598,8 @@ with pkgs;
 
     vpp = callPackage ../os-specific/linux/vpp { };
 
+    vpp_ipfix = callPackage ../os-specific/linux/vpp_ipfix { };
+
     wireguard = callPackage ../os-specific/linux/wireguard { };
 
     x86_energy_perf_policy = callPackage ../os-specific/linux/x86_energy_perf_policy { };
