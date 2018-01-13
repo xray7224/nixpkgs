@@ -7,6 +7,7 @@ stdenv.mkDerivation rec {
     url = "https://github.com/xray7224/vpp-ipfix.git";
   };
 
+  nativebuildInputs = [ vpp ];
   buildInputs = [ autoconf automake libtool vpp ];
 
   preConfigure = ''

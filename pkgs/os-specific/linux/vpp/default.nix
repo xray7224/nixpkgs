@@ -1,12 +1,12 @@
 { stdenv, fetchgit, git, autoconf, automake, curl,
   libtool, pkgconfig, python, pythonPackages, libffi,
-  nasm, numactl, openjdk, boost,
+  nasm, numactl, openjdk, boost, file,
   # FIXME: these are needed if python/java APIs are enabled
   # jdk,
   openssl,
   yacc, autoreconfHook, ensureNewerSourcesHook }:
 
-let version = "18.01"; in
+let version = "17.10"; in
 
 stdenv.mkDerivation rec {
   name = "vpp-${version}";
@@ -14,8 +14,8 @@ stdenv.mkDerivation rec {
   src = fetchgit {
     url = "https://gerrit.fd.io/r/vpp";
     # When released, change to use the tag.
-    #rev = "refs/tags/v${version}";
-    branchName= "stable/1801";
+    rev = "refs/tags/v${version}";
+    #branchName= "stable/1801";
   };
 
   # Create the version file manually.
@@ -28,44 +28,59 @@ stdenv.mkDerivation rec {
     #define VPP_BUILD_VER "${version}"
     EOF
   '';
-  
+
   # git needed to create version.h
   nativeBuildInputs = [
     autoconf automake libtool pkgconfig yacc openssl git
     curl pythonPackages.setuptools nasm numactl
-    boost
+    boost file
     # Needed to build Python API (zip 1980 issue)
     (ensureNewerSourcesHook { year = "1980"; })
   ];
-  
-  buildInputs = [ python openjdk ];
+
+  buildInputs = [ python openjdk openssl ];
 
   sourceRoot = "vpp";
 
   # Needed to build API libraries
   dontDisableStatic = true;
 
-  makeFlags = [ "PLATFORM=vpp TAG=vpp" ];
-  
+  #makeFlags = [ "PLATFORM=vpp TAG=vpp" ];
+
   patches = [];
 
   NIX_CFLAGS_COMPILE = "-march=corei7 -mtune=corei7-avx";
   SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
-  
+
   buildFlags = [ "build-release" ];
 
   installPhase = ''
-    cd build-root/install-vpp-native
-
     echo "Installing to $out"
     mkdir $out
+
+    # Copy across header files we need. Ugh.
+    mkdir -p $out/include/vlibsocket
+    cp -r src/vlibsocket/* $out/include/vlibsocket/
+
+    # Change to where we've build VPP and DPDK
+    cd build-root/install-vpp-native
 
     # Install VPP.
     cp -r vpp/* $out/
 
     # Install DPDK
     cp -r dpdk/* $out/
-    
+
+    # Copy the openssl library.
+    echo "openssl.out:"
+    ls ${openssl.out}
+
+    echo
+    echo "openssl.out:/lib"
+    ls ${openssl.out}/lib
+
+
+    cp ${openssl.out}/lib/libcrypto.so.1.0.0 $out/lib64/libcrypto.so.1.0.0
   '';
   postInstall = "cd ../..";
 
@@ -92,7 +107,7 @@ stdenv.mkDerivation rec {
     patchelf --set-rpath "$out/lib64" "$out/lib64/libsvmdb.so.0.0.0"
     patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibmemoryclient.so.0.0.0"
     patchelf --set-rpath "$out/lib64" "$out/lib64/libvnet.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvom.so.0.0.0"
+    patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibsocket.so.0.0.0"
   '';
 
   meta = with stdenv.lib; {
