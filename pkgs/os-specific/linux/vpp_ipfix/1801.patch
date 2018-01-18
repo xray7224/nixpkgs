@@ -1,0 +1,12 @@
+diff --git a/ipfix/ipfix.c b/ipfix/ipfix.c
+index 507995a..aef95f1 100644
+--- a/ipfix/ipfix.c
++++ b/ipfix/ipfix.c
+@@ -23,7 +23,6 @@
+ 
+ #include <vlibapi/api.h>
+ #include <vlibmemory/api.h>
+-#include <vlibsocket/api.h>
+ 
+ /* define message IDs */
+ #include <ipfix/ipfix_msg_enum.h>

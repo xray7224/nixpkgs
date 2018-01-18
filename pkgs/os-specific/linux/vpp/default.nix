@@ -6,7 +6,7 @@
   openssl,
   yacc, autoreconfHook, ensureNewerSourcesHook }:
 
-let version = "17.10"; in
+let version = "18.01"; in
 
 stdenv.mkDerivation rec {
   name = "vpp-${version}";
@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
   src = fetchgit {
     url = "https://gerrit.fd.io/r/vpp";
     # When released, change to use the tag.
-    rev = "refs/tags/v${version}";
+    #rev = "refs/tags/v${version}";
     #branchName= "stable/1801";
   };
 
@@ -45,7 +45,7 @@ stdenv.mkDerivation rec {
   # Needed to build API libraries
   dontDisableStatic = true;
 
-  #makeFlags = [ "PLATFORM=vpp TAG=vpp" ];
+  makeFlags = [ "PLATFORM=vpp TAG=vpp" ];
 
   patches = [];
 
@@ -107,7 +107,8 @@ stdenv.mkDerivation rec {
     patchelf --set-rpath "$out/lib64" "$out/lib64/libsvmdb.so.0.0.0"
     patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibmemoryclient.so.0.0.0"
     patchelf --set-rpath "$out/lib64" "$out/lib64/libvnet.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibsocket.so.0.0.0"
+    #patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibsocket.so.0.0.0"
+    patchelf --set-rpath "$out/lib64" "$out/lib64/libvom.so.0.0.0"
   '';
 
   meta = with stdenv.lib; {
