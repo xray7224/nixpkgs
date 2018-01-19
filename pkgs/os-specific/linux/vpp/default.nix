@@ -71,10 +71,6 @@ stdenv.mkDerivation rec {
       cp -r build-root/install-vpp-native/$subdir/* $out/
     done
 
-    # Copy across missing header files; ugh.
-    mkdir -p $out/include/vlibsocket
-    cp -r src/vlibsocket/*.h $out/include/vlibsocket/
-
     # Replace rpath.
     build_rpath=$(pwd)/build-root/install-vpp-native/vpp/lib
     for f in $(find $out/bin -type f -print) $(find $out/lib -name '*.so*' -print); do
