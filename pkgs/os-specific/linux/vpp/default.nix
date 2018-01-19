@@ -1,4 +1,4 @@
-{ stdenv, fetchgit, git, autoconf, automake, curl,
+{ stdenv, bash, fetchgit, git, autoconf, automake, curl,
   libtool, pkgconfig, python, pythonPackages, libffi,
   nasm, numactl, openjdk, boost, file,
   # FIXME: these are needed if python/java APIs are enabled
@@ -6,28 +6,16 @@
   openssl,
   yacc, autoreconfHook, ensureNewerSourcesHook }:
 
-let version = "18.01"; in
+let version = "18.04";
+    revision = "7866c4595b65"; in
 
 stdenv.mkDerivation rec {
-  name = "vpp-${version}";
+  name = "vpp-${version}-${revision}";
 
   src = fetchgit {
     url = "https://gerrit.fd.io/r/vpp";
-    # When released, change to use the tag.
-    #rev = "refs/tags/v${version}";
-    #branchName= "stable/1801";
+    rev = "${revision}";
   };
-
-  # Create the version file manually.
-  preBuild = ''
-    cat > src/vpp/app/version.h <<EOF
-    #define VPP_BUILD_DATE "Thu Jan 01 00:00:01 UTC 1970"
-    #define VPP_BUILD_USER "$(whoami)"
-    #define VPP_BUILD_HOST "nix"
-    #define VPP_BUILD_TOPDIR ""
-    #define VPP_BUILD_VER "${version}"
-    EOF
-  '';
 
   # git needed to create version.h
   nativeBuildInputs = [
@@ -40,76 +28,64 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ python openjdk openssl ];
 
-  sourceRoot = "vpp";
-
   # Needed to build API libraries
   dontDisableStatic = true;
 
-  makeFlags = [ "PLATFORM=vpp TAG=vpp" ];
+  postPatch = ''
+    patchShebangs .
+    substituteInPlace build-root/Makefile --replace /bin/bash ${bash}/bin/bash
+    substituteInPlace dpdk/Makefile --replace /bin/bash ${bash}/bin/bash
 
-  patches = [];
+    # Look for plugins in $out.
+    substituteInPlace src/vat/plugin.c --replace /usr/lib $out/lib
+    substituteInPlace src/vpp/api/plugin.c --replace /usr/lib $out/lib
+    substituteInPlace src/vpp/vnet/main.c --replace /usr/lib $out/lib
+
+    # Create the version file manually.
+    cat > src/vpp/app/version.h <<EOF
+    #define VPP_BUILD_DATE "Thu Jan 01 00:00:01 UTC 1970"
+    #define VPP_BUILD_USER "nix"
+    #define VPP_BUILD_HOST "nix"
+    #define VPP_BUILD_TOPDIR ""
+    #define VPP_BUILD_VER "${version}-${revision}"
+    EOF
+  '';
+
+  buildPhase = ''
+    # The arch_lib_dir line makes it so we always configure and
+    # install to "lib" and never "lib64".
+
+    make build-release arch_lib_dir=lib
+  '';
 
   NIX_CFLAGS_COMPILE = "-march=corei7 -mtune=corei7-avx";
   SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
-
-  buildFlags = [ "build-release" ];
 
   installPhase = ''
     echo "Installing to $out"
     mkdir $out
 
-    # Copy across header files we need. Ugh.
+    # Install DPDK and VPP.
+    for subdir in dpdk vpp; do
+      echo "Installing $subdir..."
+      cp -r build-root/install-vpp-native/$subdir/* $out/
+    done
+
+    # Copy across missing header files; ugh.
     mkdir -p $out/include/vlibsocket
-    cp -r src/vlibsocket/* $out/include/vlibsocket/
+    cp -r src/vlibsocket/*.h $out/include/vlibsocket/
 
-    # Change to where we've build VPP and DPDK
-    cd build-root/install-vpp-native
-
-    # Install VPP.
-    cp -r vpp/* $out/
-
-    # Install DPDK
-    cp -r dpdk/* $out/
-
-    # Copy the openssl library.
-    echo "openssl.out:"
-    ls ${openssl.out}
-
-    echo
-    echo "openssl.out:/lib"
-    ls ${openssl.out}/lib
-
-
-    cp ${openssl.out}/lib/libcrypto.so.1.0.0 $out/lib64/libcrypto.so.1.0.0
+    # Replace rpath.
+    build_rpath=$(pwd)/build-root/install-vpp-native/vpp/lib
+    for f in $(find $out/bin -type f -print) $(find $out/lib -name '*.so*' -print); do
+      patchelf --set-rpath \
+         $(patchelf --print-rpath $f | sed -e s,$build_rpath,$out/lib,) \
+         $f
+      patchelf --shrink-rpath $f
+    done
   '';
-  postInstall = "cd ../..";
 
   dontInstallCheck = true;
-
-  # Fix up RPATH since TMPDIR seems to end up in it for some reason
-  preFixup=''
-    patchelf --set-rpath "$out/lib" "$out"/bin/vpp
-    patchelf --set-rpath "$out/lib" "$out"/bin/vppapigen
-    patchelf --set-rpath "$out/lib" "$out"/bin/vppctl
-    patchelf --set-rpath "$out/lib" "$out"/bin/vpp_api_test
-    patchelf --set-rpath "$out/lib" "$out"/bin/vpp_json_test
-    patchelf --set-rpath "$out/lib" "$out"/bin/vpp_get_metrics
-    patchelf --set-rpath "$out/lib" "$out"/bin/vpp_restart
-    patchelf --set-rpath "$out/lib" "$out"/bin/svmtool
-    patchelf --set-rpath "$out/lib" "$out"/bin/svmdbtool
-    patchelf --set-rpath "$out/lib" "$out"/bin/elftool
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvatplugin.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibmemory.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvlib.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvapiclient.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libsvm.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvppcom.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libsvmdb.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibmemoryclient.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvnet.so.0.0.0"
-    #patchelf --set-rpath "$out/lib64" "$out/lib64/libvlibsocket.so.0.0.0"
-    patchelf --set-rpath "$out/lib64" "$out/lib64/libvom.so.0.0.0"
-  '';
 
   meta = with stdenv.lib; {
     description = "Vector packet processing";
