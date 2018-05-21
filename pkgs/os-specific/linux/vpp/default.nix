@@ -14,14 +14,14 @@ stdenv.mkDerivation rec {
 
   src = fetchgit {
     url = "https://gerrit.fd.io/r/vpp";
-    rev = "${revision}";
+    branchName = "v${version}";
   };
 
   # git needed to create version.h
   nativeBuildInputs = [
     autoconf automake libtool pkgconfig yacc openssl git
-    curl pythonPackages.setuptools nasm numactl
-    boost file
+    curl pythonPackages.setuptools nasm numactl bash
+    boost file pythonPackages.ply
     # Needed to build Python API (zip 1980 issue)
     (ensureNewerSourcesHook { year = "1980"; })
   ];
@@ -73,11 +73,14 @@ stdenv.mkDerivation rec {
 
     # Replace rpath.
     build_rpath=$(pwd)/build-root/install-vpp-native/vpp/lib
+
     for f in $(find $out/bin -type f -print) $(find $out/lib -name '*.so*' -print); do
-      patchelf --set-rpath \
-         $(patchelf --print-rpath $f | sed -e s,$build_rpath,$out/lib,) \
-         $f
-      patchelf --shrink-rpath $f
+      if [ "`file $f | cut -d' ' -f2`" == "ELF" ]; then
+        patchelf --set-rpath \
+                 $(patchelf --print-rpath $f | sed -e s,$build_rpath,$out/lib,) \
+                 $f
+        patchelf --shrink-rpath $f
+      fi
     done
   '';
 
